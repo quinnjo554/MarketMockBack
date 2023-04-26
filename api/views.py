@@ -1,5 +1,7 @@
 from django.shortcuts import render
 from rest_framework.response import Response
+
+from rest_framework import status
 from rest_framework.decorators import api_view
 from .models import User,Stock
 from .serializers import User_Serializer, Stock_Serializer
@@ -39,3 +41,20 @@ def getUser(request,pk):
       serializer = User_Serializer(users, many=False)
       return Response(serializer.data)
 
+
+@api_view(['GET'])
+def getStock(request):
+      stock = Stock.objects.all()
+      serializer = Stock_Serializer(stock, many=True)
+      return Response(serializer.data)
+
+@api_view(['POST'])
+def create_user(request):
+    username = request.data.get('username')
+    if User.objects.filter(username=username).exists():
+        return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+    serializer = User_Serializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
