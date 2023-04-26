@@ -10,7 +10,7 @@ class Stock_Serializer(ModelSerializer):
 
 
 class User_Serializer(ModelSerializer):
-    stocks = Stock_Serializer(many=True)
+    stocks = Stock_Serializer(many=True,read_only=True)
     class Meta:
         model = User
         fields = '__all__'

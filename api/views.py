@@ -50,8 +50,8 @@ def getStock(request):
 
 @api_view(['POST'])
 def create_user(request):
-    username = request.data.get('username')
-    if User.objects.filter(username=username).exists():
+    username = request.data.get('userName')
+    if User.objects.filter(userName=username).exists():
         return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
     serializer = User_Serializer(data=request.data)
     if serializer.is_valid():
