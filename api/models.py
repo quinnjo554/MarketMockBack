@@ -16,3 +16,4 @@ class UserStocks(models.Model):
     id = models.AutoField(primary_key=True)
     userId = models.ForeignKey(User, on_delete=models.CASCADE)
     stockId = models.ForeignKey(Stock, on_delete=models.CASCADE)
+    shares = models.IntegerField(null=True, blank=True)
