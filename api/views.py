@@ -34,10 +34,17 @@ def getUsers(request):
       serializer = User_Serializer(users, many=True)
       return Response(serializer.data)
 
+
 #Only returns the number of stocks the user has not the id or ticker fix later
 @api_view(['GET'])
 def getUser(request,pk):
       users = User.objects.get(userId = pk)
+      serializer = User_Serializer(users, many=False)
+      return Response(serializer.data)
+
+@api_view(['GET'])
+def getUserByEmail(request,pk):
+      users = User.objects.get(userName = pk)
       serializer = User_Serializer(users, many=False)
       return Response(serializer.data)
 
@@ -58,3 +65,63 @@ def create_user(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def create_stocks(request, pk):
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+    ticker = request.data.get('StockTicker')
+    shares = request.data.get('shares')
+    if Stock.objects.filter(StockTicker=ticker).exists():
+        id = Stock.objects.get(StockTicker=ticker)
+        return Response({"stockId":id.stockId }) #Add update Stock function
+    if not shares:
+         return Response({'error': 'Shares not provided.'}, status=status.HTTP_400_BAD_REQUEST)
+    if shares <= 0 :
+          return Response({'error': 'Invaild stock amount'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not ticker:
+        return Response({'error': 'Ticker symbol not provided.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    stock = Stock.objects.create(StockTicker=ticker, shares=shares)
+    user.stocks.add(stock)
+    user.save()
+    
+    return Response({
+        'success': f'Stock {ticker} added to user {pk} with {shares} number of shares.',
+        'stockId': stock.stockId
+    }, status=status.HTTP_201_CREATED)
+
+
+
+@api_view(['POST'])
+def sell_shares(request, u_pk, s_pk):
+    try:
+        user = User.objects.get(pk=u_pk)
+    except User.DoesNotExist:
+        return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        stock = Stock.objects.get(pk=s_pk)
+    except Stock.DoesNotExist:
+        return Response({'message': 'Stock not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    shares = request.data.get('shares')
+
+    if shares is None:
+        return Response({'message': 'Shares not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        shares = int(shares)
+    except ValueError:
+        return Response({'message': 'Invalid shares value'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if shares <= 0:
+        return Response({'message': 'Shares must be greater than zero'}, status=status.HTTP_400_BAD_REQUEST)
+
+    
+    return Response({'message': 'Shares sold successfully'}, status=status.HTTP_200_OK)
