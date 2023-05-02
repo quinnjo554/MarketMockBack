@@ -27,7 +27,18 @@ def getRoutes(request):
     ]   
       return Response(routes)
 
+@api_view(['DELETE'])
+def userStockDelete(request, userstock_id):
+    try:
+        userstock = UserStock.objects.get(id=userstock_id)
+    except UserStock.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
+    userstock.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+#Gets all the users 
 @api_view(['GET'])
 def getUsers(request):
       users = User.objects.all()
@@ -35,13 +46,30 @@ def getUsers(request):
       return Response(serializer.data)
 
 
-#Only returns the number of stocks the user has not the id or ticker fix later
+
+
+#returns all a users data use to get money spent
 @api_view(['GET'])
 def getUser(request,pk):
       users = User.objects.get(userId = pk)
       serializer = User_Serializer(users, many=False)
       return Response(serializer.data)
 
+#Updates a specific users money_spent
+@api_view(['PUT'])
+def updateUserMoneySpent(request, pk, money):
+    try:
+        user = User.objects.get(userId=pk)
+    except User.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    user.money_spent = money
+    user.save()
+    serializer = User_Serializer(user)
+    return Response(serializer.data)
+
+
+#gets all the info for a user with the email
 @api_view(['GET'])
 def getUserByEmail(request,pk):
       users = User.objects.get(userName = pk)
@@ -49,7 +77,7 @@ def getUserByEmail(request,pk):
       return Response(serializer.data)
 
 
-
+#gets all the stocks associated to a user
 @api_view(['GET'])
 def getUserStocks(request, u_id):
     userStocks = UserStock.objects.filter(user=u_id)
@@ -57,6 +85,7 @@ def getUserStocks(request, u_id):
     return Response(serializer.data)
 
 
+#gets all the stock objects
 @api_view(['GET'])
 def getStock(request):
       stock = Stock.objects.all()

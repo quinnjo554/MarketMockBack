@@ -15,6 +15,6 @@ urlpatterns = [
     path('getUserStocks/<str:u_id>', views.getUserStocks,name='get_stocks'),
     path('updateStockShares/<str:user_id>/<stock_ticker>/<str:shares>', views.UpdateUserStockBuy, name='update_Stock'),
     path('updateStockSharesSell/<str:user_id>/<stock_ticker>/<str:shares>', views.UpdateUserStockSell, name='update_Stock'),
-
-    
+    path('updateMoneySpent/<str:pk>/<str:money>', views.updateUserMoneySpent, name='update_Money'),
+    path('deleteUserStock/<str:userstock_id>', views.userStockDelete, name='delete_userStock'),
 ]
