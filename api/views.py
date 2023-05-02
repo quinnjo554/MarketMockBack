@@ -3,8 +3,8 @@ from rest_framework.response import Response
 
 from rest_framework import status
 from rest_framework.decorators import api_view
-from .models import User,Stock
-from .serializers import User_Serializer, Stock_Serializer
+from .models import User,Stock, UserStock
+from .serializers import User_Serializer, Stock_Serializer, UserStock_Serializer
 
 # Create your views here.
 #install Django rest framwork with python -m install djangorestframework
@@ -49,11 +49,87 @@ def getUserByEmail(request,pk):
       return Response(serializer.data)
 
 
+
+@api_view(['GET'])
+def getUserStocks(request, u_id):
+    userStocks = UserStock.objects.filter(user=u_id)
+    serializer = UserStock_Serializer(userStocks, many=True)
+    return Response(serializer.data)
+
+
 @api_view(['GET'])
 def getStock(request):
       stock = Stock.objects.all()
       serializer = Stock_Serializer(stock, many=True)
       return Response(serializer.data)
+
+##
+## Update User stocks 
+## get the pk and sk from request body
+## Its Put because its modifing a row that already exist
+@api_view(['PUT'])
+def UpdateUserStockBuy(request, user_id, stock_ticker, shares):
+    try:
+        user_stock = UserStock.objects.get(user_id=user_id, stock=stock_ticker)
+    except UserStock.DoesNotExist:
+        return Response("User stock does not exist")
+
+    # Update the shares field of the UserStock object
+    user_stock.shares += int(shares)
+    user_stock.save()
+
+    return Response(f"User {user_stock.user.userName} updated shares of {user_stock.stock} to {user_stock.shares}")
+
+@api_view(['PUT'])
+def UpdateUserStockSell(request, user_id, stock_ticker, shares):
+    try:
+        user_stock = UserStock.objects.get(user_id=user_id, stock=stock_ticker)
+    except UserStock.DoesNotExist:
+        return Response("User stock does not exist")
+
+    # Check if user has enough shares to sell
+    if user_stock.shares < int(shares):
+        return Response(f"User {user_stock.user.userName} does not have enough shares to sell")
+
+    # Update the shares field of the UserStock object
+    user_stock.shares -= int(shares)
+    user_stock.save()
+
+    return Response(f"User {user_stock.user.userName} updated shares of {user_stock.stock} to {user_stock.shares}")
+
+
+@api_view(['POST'])
+def create_Stock(request, stock_ticker):
+    # Try to retrieve the stock from the database
+    stock, created = Stock.objects.get_or_create(StockTicker=stock_ticker)
+
+    # If the stock already exists, return its ID
+    if not created:
+        return Response({'success': True, 'stock': {'id': stock.stockId}})
+
+    # Otherwise, save the new stock object and return its details
+    stock.save()
+    return Response({'success': True, 'stock': {'id': stock.stockId, 'StockTicker': stock.StockTicker}})
+# 
+# Run Create Stock First
+# In THe stock Landing
+# 
+@api_view(['POST'])
+def addStockToUser(request, u_id, ticker, shares):
+    try:
+        user = User.objects.get(userId=u_id)
+        stock = Stock.objects.get(StockTicker=ticker)
+    except (User.DoesNotExist, Stock.DoesNotExist):
+        return Response("User or stock gone")
+
+    if UserStock.objects.filter(user=user, stock=stock.StockTicker).exists():
+        return Response(f"User {user.userName} already has {stock.StockTicker}")
+    else:
+        user_stock = UserStock.objects.create(user=user, stock=stock.StockTicker, shares=shares)
+        user_stock.save()
+
+    return Response(f"User {user.userName} added {shares} shares of {stock.StockTicker}")
+
 
 @api_view(['POST'])
 def create_user(request):
@@ -66,62 +142,3 @@ def create_user(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-@api_view(['POST'])
-def create_stocks(request, pk):
-    try:
-        user = User.objects.get(pk=pk)
-    except User.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-    
-    ticker = request.data.get('StockTicker')
-    shares = request.data.get('shares')
-    if Stock.objects.filter(StockTicker=ticker).exists():
-        id = Stock.objects.get(StockTicker=ticker)
-        return Response({"stockId":id.stockId }) #Add update Stock function
-    if not shares:
-         return Response({'error': 'Shares not provided.'}, status=status.HTTP_400_BAD_REQUEST)
-    if shares <= 0 :
-          return Response({'error': 'Invaild stock amount'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if not ticker:
-        return Response({'error': 'Ticker symbol not provided.'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    stock = Stock.objects.create(StockTicker=ticker, shares=shares)
-    user.stocks.add(stock)
-    user.save()
-    
-    return Response({
-        'success': f'Stock {ticker} added to user {pk} with {shares} number of shares.',
-        'stockId': stock.stockId
-    }, status=status.HTTP_201_CREATED)
-
-
-
-@api_view(['POST'])
-def sell_shares(request, u_pk, s_pk):
-    try:
-        user = User.objects.get(pk=u_pk)
-    except User.DoesNotExist:
-        return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    try:
-        stock = Stock.objects.get(pk=s_pk)
-    except Stock.DoesNotExist:
-        return Response({'message': 'Stock not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    shares = request.data.get('shares')
-
-    if shares is None:
-        return Response({'message': 'Shares not provided'}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        shares = int(shares)
-    except ValueError:
-        return Response({'message': 'Invalid shares value'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if shares <= 0:
-        return Response({'message': 'Shares must be greater than zero'}, status=status.HTTP_400_BAD_REQUEST)
-
-    
-    return Response({'message': 'Shares sold successfully'}, status=status.HTTP_200_OK)

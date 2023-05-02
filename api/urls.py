@@ -10,5 +10,11 @@ urlpatterns = [
     path('user/<str:pk>',views.getUserByEmail,name='user'),
     path('stocks/', views.getStock, name="stocks"),
     path('postUser/', views.create_user, name='create_user'),
-    path('postStock/<str:pk>/', views.create_stocks,name='create_stocks'),
+    path('postStock/<str:stock_ticker>', views.create_Stock, name='create_Stock'),
+    path('postStockToUser/<str:u_id>/<str:ticker>/<str:shares>', views.addStockToUser, name='create_Stock'),
+    path('getUserStocks/<str:u_id>', views.getUserStocks,name='get_stocks'),
+    path('updateStockShares/<str:user_id>/<stock_ticker>/<str:shares>', views.UpdateUserStockBuy, name='update_Stock'),
+    path('updateStockSharesSell/<str:user_id>/<stock_ticker>/<str:shares>', views.UpdateUserStockSell, name='update_Stock'),
+
+    
 ]
