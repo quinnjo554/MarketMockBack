@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.shortcuts import render
 from rest_framework.response import Response
 
@@ -28,15 +29,14 @@ def getRoutes(request):
       return Response(routes)
 
 @api_view(['DELETE'])
-def userStockDelete(request, userstock_id):
+def userStockDelete(request, user_id, stock_id):
     try:
-        userstock = UserStock.objects.get(id=userstock_id)
+        userstock = UserStock.objects.get(user=user_id, stock=stock_id)
     except UserStock.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response({'message': 'UserStock does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
     userstock.delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
-
+    return Response({'message': 'UserStock deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
 #Gets all the users 
 @api_view(['GET'])
@@ -63,10 +63,11 @@ def updateUserMoneySpent(request, pk, money):
     except User.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    user.money_spent = money
+    if user.money_spent is None:
+        user.money_spent = Decimal('0')
+    user.money_spent += Decimal(money)
     user.save()
-    serializer = User_Serializer(user)
-    return Response(serializer.data)
+    return Response({'message': 'User money spent updated successfully'})
 
 
 #gets all the info for a user with the email
@@ -151,7 +152,9 @@ def addStockToUser(request, u_id, ticker, shares):
     except (User.DoesNotExist, Stock.DoesNotExist):
         return Response("User or stock gone")
 
-    if UserStock.objects.filter(user=user, stock=stock.StockTicker).exists():
+    if UserStock.objects.filter(user=user).count() >= 5:
+        return Response({"message":f"User {user.userName} already has 5 stocks."})
+    elif UserStock.objects.filter(user=user, stock=stock.StockTicker).exists():
         return Response({"message":f"User {user.userName} already has {stock.StockTicker}"})
     else:
         user_stock = UserStock.objects.create(user=user, stock=stock.StockTicker, shares=shares)
