@@ -152,12 +152,11 @@ def addStockToUser(request, u_id, ticker, shares):
         return Response("User or stock gone")
 
     if UserStock.objects.filter(user=user, stock=stock.StockTicker).exists():
-        return Response(f"User {user.userName} already has {stock.StockTicker}")
+        return Response({"message":f"User {user.userName} already has {stock.StockTicker}"})
     else:
         user_stock = UserStock.objects.create(user=user, stock=stock.StockTicker, shares=shares)
         user_stock.save()
-
-    return Response(f"User {user.userName} added {shares} shares of {stock.StockTicker}")
+    return Response({"message": f"User {user.userName} added {shares} shares of {stock.StockTicker}"})
 
 
 @api_view(['POST'])
